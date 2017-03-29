@@ -178,12 +178,13 @@ void EditAttributeDialog::edit_attribute_validated()
 
 					ca->import_element(emb, sstream);
 					{
-						sstream = std::stringstream();
-						ca->export_element(emb, sstream, false, false);
+						//sstream = std::stringstream();
+						std::stringstream sstream2;
+						ca->export_element(emb, sstream2, false, false);
 						for (int32 c = 0; c < nbc; ++c)
 						{
 							std::string val;
-							sstream >> val;
+							sstream2 >> val;
 							attribute_tableWidget->item(r,c)->setText(QString::fromStdString(val));
 						}
 					}
