@@ -28,6 +28,10 @@
 
 #include <cgogn/geometry/algos/selection.h>
 
+#include <cgogn/rendering/transparency_volume_drawer.h>
+#include <schnapps/plugins/volume_render/volume_transp.h>
+
+
 namespace schnapps
 {
 
@@ -37,7 +41,8 @@ namespace plugin_surface_render_transp
 Plugin_SurfaceRenderTransp::~Plugin_SurfaceRenderTransp()
 {}
 
-Plugin_SurfaceRenderTransp::Plugin_SurfaceRenderTransp()
+Plugin_SurfaceRenderTransp::Plugin_SurfaceRenderTransp():
+	vol_plug_(nullptr)
 {}
 
 
@@ -97,16 +102,24 @@ void Plugin_SurfaceRenderTransp::disable()
 }
 
 void Plugin_SurfaceRenderTransp::draw_map(View* view, MapHandlerGen* map, const QMatrix4x4& proj, const QMatrix4x4& mv)
-{
-//	cgogn_log_info("Plugin_SurfaceRenderTransp::draw_map") << "ok";
-}
+{}
 
 void Plugin_SurfaceRenderTransp::draw(View* view, const QMatrix4x4& proj, const QMatrix4x4& mv)
 {
-	const std::list<MapHandlerGen*>& maps = view->get_linked_maps();
-	if (maps.empty())
-		return;
+	// TODO: 
+	std::vector<std::pair<MapHandlerGen*, cgogn::rendering::VolumeTransparencyDrawer::Renderer*>> vmaps;
+	if (!vol_plug_)
+	{
+		const std::list<PluginInteraction*> plist = view->get_linked_plugins();
+		for (PluginInteraction* plug : plist)
+			if (plug->get_name() == "volume_render")
+				vol_plug_ = plug;
+	}
+//		vol_plug_ = schnapps_->get_plugin(QString("volume_render"));
+	if (vol_plug_)
+		plugin_volume_render::get_transparent_maps(vol_plug_,view,vmaps);
 
+	const std::list<MapHandlerGen*>& maps = view->get_linked_maps();
 	auto& view_param_set = parameter_set_[view];
 
 	auto  it_trdr = transp_drawer_set_.find(view);
@@ -119,6 +132,7 @@ void Plugin_SurfaceRenderTransp::draw(View* view, const QMatrix4x4& proj, const 
 
 	it_trdr->second->draw( [&] ()
 	{
+		// surfaces
 		for (const auto& m: maps)
 		{
 			QMatrix4x4 mmv = mv * m->get_frame_matrix() * m->get_transformation_matrix();
@@ -138,6 +152,14 @@ void Plugin_SurfaceRenderTransp::draw(View* view, const QMatrix4x4& proj, const 
 					p.shader_phong_param_->release();
 				}
 			}
+		}
+		// volumes
+		for (const auto& pm : vmaps)
+		{
+			const auto& m = pm.first;
+			QMatrix4x4 mmv = mv * m->get_frame_matrix() * m->get_transformation_matrix();
+			cgogn::rendering::VolumeTransparencyDrawer::Renderer* rend = pm.second;
+			rend->draw_faces(proj, mmv, view);
 		}
 	});
 

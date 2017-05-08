@@ -36,7 +36,7 @@
 #include <schnapps/core/schnapps.h>
 #include <schnapps/core/map_handler.h>
 
-#include <volume_render_dock_tab.h>
+#include <schnapps/plugins/volume_render/volume_render_dock_tab.h>
 
 #include <cgogn/rendering/shaders/shader_flat.h>
 #include <cgogn/rendering/shaders/shader_simple_color.h>
@@ -241,6 +241,8 @@ public:
 
 	~Plugin_VolumeRender() {}
 
+	void get_transparent_maps(View* view, std::vector<std::pair<MapHandlerGen*, cgogn::rendering::VolumeTransparencyDrawer::Renderer*>>& trmaps);
+
 private:
 
 	MapParameters& get_parameters(View* view, MapHandlerGen* map);
@@ -257,7 +259,7 @@ private:
 	void mouseRelease(View*, QMouseEvent*) override;
 	void mouseMove(View*, QMouseEvent*) override;
 	inline void wheelEvent(View*, QWheelEvent*) override {}
-	void resizeGL(View* view, int width, int height) override;
+	void resizeGL(View* view, int width, int height) override {}
 
 	void view_linked(View*) override;
 	void view_unlinked(View*) override;

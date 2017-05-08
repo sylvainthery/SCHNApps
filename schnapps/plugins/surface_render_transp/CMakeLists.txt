@@ -36,6 +36,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME}
 	schnapps_core
+	plugin_volume_render
 	${cgogn_core_LIBRARIES}
 	${cgogn_rendering_LIBRARIES}
 	${Qt5Widgets_LIBRARIES}

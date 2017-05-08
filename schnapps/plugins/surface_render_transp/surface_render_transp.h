@@ -224,6 +224,7 @@ private:
 	SurfaceRenderTransp_DockTab* dock_tab_;
 	std::map<View*, std::map<MapHandlerGen*, MapParameters>> parameter_set_;
 	std::map<View*, cgogn::rendering::SurfaceTransparencyDrawer*> transp_drawer_set_;
+	Plugin* vol_plug_;
 
 	bool setting_auto_enable_on_selected_view_;
 	QString setting_auto_load_position_attribute_;

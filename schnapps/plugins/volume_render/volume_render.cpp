@@ -27,7 +27,6 @@
 
 #include <schnapps/core/view.h>
 #include <schnapps/core/camera.h>
-
 #include <cgogn/geometry/algos/selection.h>
 
 namespace schnapps
@@ -44,7 +43,6 @@ MapParameters& Plugin_VolumeRender::get_parameters(View* view, MapHandlerGen* ma
 	if (view_param_set.count(map) == 0)
 	{
 		MapParameters& p = view_param_set[map];
-		p.volume_transparency_drawer_rend_->resize(view->devicePixelRatio()*view->size().width(), view->devicePixelRatio()*view->size().height(), view);
 		p.map_ = static_cast<MapHandler<CMap3>*>(map);
 		if (map->get_bb().is_initialized())
 		{
@@ -135,12 +133,6 @@ void Plugin_VolumeRender::draw_map(View* view, MapHandlerGen* map, const QMatrix
 				glPolygonOffset(1.0f, 1.0f);
 				if (!p.use_transparency_ && p.volume_drawer_rend_)
 					p.volume_drawer_rend_->draw_faces(proj, mv, view);
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
-				else {
-					if (p.use_transparency_ && p.volume_transparency_drawer_rend_)
-						p.volume_transparency_drawer_rend_->draw_faces(proj, mv);
-				}
-#endif
 				glDisable(GL_POLYGON_OFFSET_FILL);
 			}
 		}
@@ -195,17 +187,6 @@ void Plugin_VolumeRender::mouseMove(View* view, QMouseEvent* event)
 	}
 }
 
-void Plugin_VolumeRender::resizeGL(View* view, int width, int height)
-{
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
-	MapHandlerGen* map = schnapps_->get_selected_map();
-	if (map && map->is_linked_to_view(view) && map->dimension() == 3)
-	{
-		MapParameters& p = get_parameters(view, map);
-		p.volume_transparency_drawer_rend_->resize(view->devicePixelRatio()*width,view->devicePixelRatio()*height, view);
-	}
-#endif
-}
 
 void Plugin_VolumeRender::view_linked(View* view)
 {
@@ -651,6 +632,25 @@ void MapParameters::initialize_gl()
 
 	set_position_vbo(position_vbo_);
 }
+
+void Plugin_VolumeRender::get_transparent_maps(View* view, std::vector<std::pair<MapHandlerGen*, cgogn::rendering::VolumeTransparencyDrawer::Renderer*>>& trmaps)
+{
+	trmaps.clear();
+	auto& view_param_set = parameter_set_[view];
+	for (auto& pp : view_param_set)
+	{
+		MapParameters& p = pp.second;
+		if (p.use_transparency_)
+			trmaps.push_back(std::make_pair(pp.first, p.volume_transparency_drawer_rend_.get()));
+	}
+}
+
+SCHNAPPS_PLUGIN_VOLUME_RENDER_API void get_transparent_maps(Plugin* plug, View* view, std::vector<std::pair<MapHandlerGen*, cgogn::rendering::VolumeTransparencyDrawer::Renderer*>>& trmaps)
+{
+	Plugin_VolumeRender* vr_plug = reinterpret_cast<Plugin_VolumeRender*>(plug);
+	vr_plug->get_transparent_maps(view, trmaps);
+}
+
 
 } // namespace plugin_volume_render
 
