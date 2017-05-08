@@ -106,8 +106,7 @@ void Plugin_SurfaceRenderTransp::draw_map(View* view, MapHandlerGen* map, const 
 
 void Plugin_SurfaceRenderTransp::draw(View* view, const QMatrix4x4& proj, const QMatrix4x4& mv)
 {
-	// TODO: 
-	std::vector<std::pair<MapHandlerGen*, cgogn::rendering::VolumeTransparencyDrawer::Renderer*>> vmaps;
+	// get volume render if linked to the view
 	if (!vol_plug_)
 	{
 		const std::list<PluginInteraction*> plist = view->get_linked_plugins();
@@ -115,7 +114,8 @@ void Plugin_SurfaceRenderTransp::draw(View* view, const QMatrix4x4& proj, const 
 			if (plug->get_name() == "volume_render")
 				vol_plug_ = plug;
 	}
-//		vol_plug_ = schnapps_->get_plugin(QString("volume_render"));
+	// get transparent volume to render 
+	std::vector<std::pair<MapHandlerGen*, cgogn::rendering::VolumeTransparencyDrawer::Renderer*>> vmaps;
 	if (vol_plug_)
 		plugin_volume_render::get_transparent_maps(vol_plug_,view,vmaps);
 
