@@ -23,11 +23,14 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <volume_render.h>
+#include "volume_render.h"
 
 #include <schnapps/core/view.h>
 #include <schnapps/core/camera.h>
+#include <schnapps/plugins/surface_render_transp/surface_render_transp_extern.h>
+
 #include <cgogn/geometry/algos/selection.h>
+
 
 namespace schnapps
 {
@@ -77,6 +80,8 @@ bool Plugin_VolumeRender::enable()
 	connect(schnapps_, SIGNAL(plugin_enabled(Plugin*)), this, SLOT(enable_on_selected_view(Plugin*)));
 
 	update_dock_tab();
+
+	plug_transp_=schnapps_->enable_plugin("surface_render_transp");
 
 	return true;
 }
@@ -190,6 +195,8 @@ void Plugin_VolumeRender::mouseMove(View* view, QMouseEvent* event)
 
 void Plugin_VolumeRender::view_linked(View* view)
 {
+	view->link_plugin(reinterpret_cast<PluginInteraction*>(plug_transp_));
+
 	update_dock_tab();
 
 	connect(view, SIGNAL(map_linked(MapHandlerGen*)), this, SLOT(map_linked(MapHandlerGen*)));
@@ -247,8 +254,12 @@ void Plugin_VolumeRender::map_linked(MapHandlerGen* map)
 	{
 		View* view = schnapps_->get_selected_view();
 		if (view)
+		{
 			set_position_vbo(view->get_name(), map->get_name(), setting_auto_load_position_attribute_);
-
+			MapParameters& p = get_parameters(view, map);
+			if (p.use_transparency_)
+					plugin_surface_render_transp::add_tr_vol(plug_transp_,view,map,p.get_transp_drawer_rend());
+		}
 		connect(map, SIGNAL(vbo_added(cgogn::rendering::VBO*)), this, SLOT(linked_map_vbo_added(cgogn::rendering::VBO*)), Qt::UniqueConnection);
 		connect(map, SIGNAL(vbo_removed(cgogn::rendering::VBO*)), this, SLOT(linked_map_vbo_removed(cgogn::rendering::VBO*)), Qt::UniqueConnection);
 		connect(map, SIGNAL(bb_changed()), this, SLOT(linked_map_bb_changed()), Qt::UniqueConnection);
@@ -268,6 +279,13 @@ void Plugin_VolumeRender::map_unlinked(MapHandlerGen* map)
 		disconnect(map, SIGNAL(bb_changed()), this, SLOT(linked_map_bb_changed()));
 		disconnect(map, SIGNAL(connectivity_changed()), this, SLOT(linked_map_connectivity_changed()));
 		disconnect(map, SIGNAL(attribute_changed(cgogn::Orbit,QString)), this, SLOT(linked_attribute_changed(cgogn::Orbit,QString)));
+		View* view = schnapps_->get_selected_view();
+		if (view)
+		{
+			MapParameters& p = get_parameters(view, map);
+			if (p.use_transparency_)
+					plugin_surface_render_transp::remove_tr_vol(plug_transp_,view,map,p.get_transp_drawer_rend());
+		}
 	}
 }
 
@@ -554,7 +572,7 @@ MapParameters::MapParameters() :
 	render_topology_(false),
 	use_transparency_(false)
 {
-	transparency_factor_ = 254;
+	transparency_factor_ = 127;
 	vertex_color_ = QColor(190, 85, 168);
 	edge_color_ = QColor(0, 0, 0);
 	face_color_ = QColor(85, 168, 190);
@@ -644,13 +662,6 @@ void Plugin_VolumeRender::get_transparent_maps(View* view, std::vector<std::pair
 			trmaps.push_back(std::make_pair(pp.first, p.volume_transparency_drawer_rend_.get()));
 	}
 }
-
-SCHNAPPS_PLUGIN_VOLUME_RENDER_API void get_transparent_maps(Plugin* plug, View* view, std::vector<std::pair<MapHandlerGen*, cgogn::rendering::VolumeTransparencyDrawer::Renderer*>>& trmaps)
-{
-	Plugin_VolumeRender* vr_plug = reinterpret_cast<Plugin_VolumeRender*>(plug);
-	vr_plug->get_transparent_maps(view, trmaps);
-}
-
 
 } // namespace plugin_volume_render
 

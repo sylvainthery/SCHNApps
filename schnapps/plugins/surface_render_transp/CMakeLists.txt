@@ -10,12 +10,11 @@ find_package(QOGLViewer REQUIRED)
 set(HEADER_FILES
 	dll.h
 	surface_render_transp.h
-	surface_render_transp_dock_tab.h
+	surface_render_transp_extern.h
 )
 
 set(SOURCE_FILES
 	surface_render_transp.cpp
-	surface_render_transp_dock_tab.cpp
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -36,7 +35,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME}
 	schnapps_core
-	plugin_volume_render
+	plugin_volume_render plugin_surface_render
 	${cgogn_core_LIBRARIES}
 	${cgogn_rendering_LIBRARIES}
 	${Qt5Widgets_LIBRARIES}

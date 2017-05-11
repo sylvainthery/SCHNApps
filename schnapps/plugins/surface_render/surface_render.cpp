@@ -21,10 +21,11 @@
 *                                                                              *
 *******************************************************************************/
 
-#include <surface_render.h>
+#include "surface_render.h"
 
 #include <schnapps/core/view.h>
 #include <schnapps/core/camera.h>
+#include <schnapps/plugins/surface_render_transp/surface_render_transp_extern.h>
 
 #include <cgogn/geometry/algos/selection.h>
 
@@ -83,6 +84,8 @@ bool Plugin_SurfaceRender::enable()
 
 	update_dock_tab();
 
+	plug_transp_=schnapps_->enable_plugin("surface_render_transp");
+
 	return true;
 }
 
@@ -103,7 +106,7 @@ void Plugin_SurfaceRender::draw_map(View* view, MapHandlerGen* map, const QMatri
 		view->makeCurrent();
 		const MapParameters& p = get_parameters(view, map);
 
-		if (p.render_faces_)
+		if ((p.render_faces_) &&(!p.use_transparency_))
 		{
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(1.0f, 1.0f);
@@ -185,6 +188,8 @@ void Plugin_SurfaceRender::draw_map(View* view, MapHandlerGen* map, const QMatri
 
 void Plugin_SurfaceRender::view_linked(View* view)
 {
+	view->link_plugin(reinterpret_cast<PluginInteraction*>(plug_transp_));
+
 	update_dock_tab();
 
 	connect(view, SIGNAL(map_linked(MapHandlerGen*)), this, SLOT(map_linked(MapHandlerGen*)));
@@ -217,6 +222,15 @@ void Plugin_SurfaceRender::map_linked(MapHandlerGen *map)
 			set_position_vbo(view->get_name(), map->get_name(), setting_auto_load_position_attribute_);
 			set_normal_vbo(view->get_name(), map->get_name(), setting_auto_load_normal_attribute_);
 			set_color_vbo(view->get_name(), map->get_name(), setting_auto_load_color_attribute_);
+
+			MapParameters& p = get_parameters(view, map);
+			if (p.use_transparency_)
+			{
+				if (p.face_style_== MapParameters::FLAT)
+					plugin_surface_render_transp::add_tr_flat(plug_transp_,view,map,p.get_transp_flat_param());
+				if (p.face_style_== MapParameters::PHONG)
+					plugin_surface_render_transp::add_tr_phong(plug_transp_,view,map,p.get_transp_phong_param());
+			}
 		}
 
 		connect(map, SIGNAL(vbo_added(cgogn::rendering::VBO*)), this, SLOT(linked_map_vbo_added(cgogn::rendering::VBO*)), Qt::UniqueConnection);
@@ -234,6 +248,19 @@ void Plugin_SurfaceRender::map_unlinked(MapHandlerGen *map)
 		disconnect(map, SIGNAL(vbo_added(cgogn::rendering::VBO*)), this, SLOT(linked_map_vbo_added(cgogn::rendering::VBO*)));
 		disconnect(map, SIGNAL(vbo_removed(cgogn::rendering::VBO*)), this, SLOT(linked_map_vbo_removed(cgogn::rendering::VBO*)));
 		disconnect(map, SIGNAL(bb_changed()), this, SLOT(linked_map_bb_changed()));
+
+		View* view = schnapps_->get_selected_view();
+		if (view)
+		{
+			MapParameters& p = get_parameters(view, map);
+			if (p.use_transparency_)
+			{
+				if (p.face_style_== MapParameters::FLAT)
+					plugin_surface_render_transp::remove_tr_flat(plug_transp_,view,map,p.get_transp_flat_param());
+				if (p.face_style_== MapParameters::PHONG)
+					plugin_surface_render_transp::remove_tr_phong(plug_transp_,view,map,p.get_transp_phong_param());
+			}
+		}
 	}
 }
 
@@ -502,6 +529,28 @@ void Plugin_SurfaceRender::set_vertex_scale_factor(View* view, MapHandlerGen* ma
 		view->update();
 	}
 }
+
+
+//void Plugin_SurfaceRender::get_transparent_maps(View* view, std::vector<std::tuple<MapHandlerGen*, cgogn::rendering::ShaderFlatTransp::Param*,cgogn::rendering::ShaderPhongTransp::Param*> >& trmaps)
+//{
+//	trmaps.clear();
+//	auto& view_param_set = parameter_set_[view];
+//	for (auto& pp : view_param_set)
+//	{
+//		MapParameters& p = pp.second;
+//		if (p.use_transparency_)
+//			trmaps.push_back(std::make_tuple(pp.first, p.shader_transp_flat_param_.get(), p.shader_transp_phong_param_.get()));
+//	}
+//}
+
+//SCHNAPPS_PLUGIN_SURFACE_RENDER_API void get_transparent_maps(Plugin* plug, View* view, std::vector<std::tuple<MapHandlerGen*, cgogn::rendering::ShaderFlatTransp::Param*,cgogn::rendering::ShaderPhongTransp::Param*> >& trmaps)
+//{
+//	Plugin_SurfaceRender* sr_plug = reinterpret_cast<Plugin_VolumeRender*>(plug);
+//	vr_plug->get_transparent_maps(view, trmaps);
+//}
+
+
+
 
 } // namespace plugin_surface_render
 
