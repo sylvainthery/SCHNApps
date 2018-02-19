@@ -102,7 +102,6 @@ void Plugin_Selection::draw_map(View* view, MapHandlerGen* map, const QMatrix4x4
 	{
 		view->makeCurrent();
 		QOpenGLFunctions* ogl = QOpenGLContext::currentContext()->functions();
-		QOpenGLFunctions_3_3_Core* ogl33 = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_3_3_Core>();
 
 		const MapParameters& p = get_parameters(view, map);
 
@@ -213,14 +212,14 @@ void Plugin_Selection::draw_map(View* view, MapHandlerGen* map, const QMatrix4x4
 					break;
 				case Volume_Cell:
 					if (p.cells_set_->get_nb_cells() > 0)
-						p.drawer_rend_selected_volumes_->draw(proj, mv, ogl33);
+						p.drawer_rend_selected_volumes_->draw(proj, mv);
 					if (p.selecting_)
 					{
 						switch (p.selection_method_)
 						{
 							case MapParameters::SingleCell:
 								if (!p.selecting_volume_.is_nil())
-									p.drawer_rend_selected_volumes_->draw(proj, mv, ogl33);
+									p.drawer_rend_selected_volumes_->draw(proj, mv);
 								break;
 							default:
 								break;
